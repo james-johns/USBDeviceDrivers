@@ -1,4 +1,4 @@
 
 
-obj-y+=main/main.o
+obj-y+=main/usbpio.o
 
