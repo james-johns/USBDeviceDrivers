@@ -3,16 +3,16 @@
 ###
 # Build environment setup
 ###
-PROJECT:=libusbpio.a
+PROJECT:=usbdriver
 
 CROSS_COMPILE?=
 
 CC:=$(CROSS_COMPILE)gcc
 LD:=$(CROSS_COMPILE)gcc
 
-CFLAGS+=-I./include/
+CFLAGS+=-I/usr/include/libusb-1.0
 CCFLAGS+=
-LDFLAGS+= -lc 
+LDFLAGS+=-lc -lusb-1.0
 
 Q:=-@
 
@@ -32,9 +32,10 @@ clean:
 	$(Q)rm $(PROJECT)
 	$(Q)rm $(obj-y)
 
-libusbpio.a: $(obj-y)
-	$(Q)echo " [AR] $@"
-	$(Q)$(AR) -cr $@ $<
+$(PROJECT): $(obj-y) FORCE
+	$(Q)echo " [LD]  $@"
+	$(Q)$(LD) -o $(PROJECT) $(obj-y) $(LDFLAGS)
+
 
 ###
 # Intermediary build targets
@@ -46,6 +47,3 @@ libusbpio.a: $(obj-y)
 .cpp.o:
 	$(Q)echo " [C++] $@"
 	$(Q)$(CC) $(CCFLAGS) -c -o $@ $<
-
-
-
