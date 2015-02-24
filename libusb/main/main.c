@@ -68,21 +68,73 @@ void printDeviceInfo(libusb_device *device)
         }
 }
 
+void setPortDirection(libusb_device_handle *device, unsigned char port, unsigned char direction)
+{
+	char *command = malloc(sizeof(char)*9);
+	snprintf(command, 9, "@00D%1X%02X\r", (unsigned int)port, (unsigned int)direction);
+	int written = 0;
+	libusb_bulk_transfer(device, (1 | LIBUSB_ENDPOINT_OUT), command, 8, &written, 0);
+	if (written != 8)
+		fprintf(stderr, "Failed to send command\n");
+	libusb_bulk_transfer(device, (2 | LIBUSB_ENDPOINT_IN), command, 4, &written, 0);
+	if (written != 4)
+		fprintf(stderr, "No return value\n");
+	free(command);
+}
+
+void getPortDirection(libusb_device_handle *device, unsigned char port, unsigned char *direction)
+{
+	char *command = malloc(sizeof(char)*8);
+	snprintf(command, 8, "@00D%1X?\r", (unsigned int)port);
+	int written = 0;
+	libusb_bulk_transfer(device, (1 | LIBUSB_ENDPOINT_OUT), command, 7, &written, 0);
+	if (written != 7)
+		fprintf(stderr, "Failed to send command\n");
+	libusb_bulk_transfer(device, (2 | LIBUSB_ENDPOINT_IN), command, 6, &written, 0);
+	if (written != 6)
+		fprintf(stderr, "No return value\n");
+	else
+		fprintf(stderr, "Returned %s\n", command);
+
+	unsigned int input;
+	sscanf(command, "!00%2X\r", &input);
+	*direction = (input & 0x000000FF);
+
+	free(command);
+}
+
 void setPortValue(libusb_device_handle *device, unsigned char port, unsigned char value)
 {
 	char *command = malloc(sizeof(char)*9);
 	snprintf(command, 9, "@00P%1X%02X\r", (unsigned int)port, (unsigned int)value);
 	int written = 0;
 	libusb_bulk_transfer(device, (1 | LIBUSB_ENDPOINT_OUT), command, 8, &written, 0);
-	if (written == 8)
-		fprintf(stderr, "Sent command %s\n", command);
-	else
+	if (written != 8)
 		fprintf(stderr, "Failed to send command\n");
 	libusb_bulk_transfer(device, (2 | LIBUSB_ENDPOINT_IN), command, 4, &written, 0);
-	if (written == 4)
-		fprintf(stderr, "Returned %s\n", command);
-	else
+	if (written != 4)
 		fprintf(stderr, "No return value\n");
+	free(command);
+}
+
+void getPortValue(libusb_device_handle *device, unsigned char port, unsigned char *value)
+{
+	char *command = malloc(sizeof(char)*8);
+	snprintf(command, 8, "@00P%1X?\r", (unsigned int)port);
+	int written = 0;
+	libusb_bulk_transfer(device, (1 | LIBUSB_ENDPOINT_OUT), command, 7, &written, 0);
+	if (written != 7)
+		fprintf(stderr, "Failed to send command\n");
+	libusb_bulk_transfer(device, (2 | LIBUSB_ENDPOINT_IN), command, 6, &written, 0);
+	if (written != 6)
+		fprintf(stderr, "No return value\n");
+	else
+		fprintf(stderr, "Returned %s\n", command);
+
+	unsigned int input;
+	sscanf(command, "!00%2X\r", &input);
+	*value = (input & 0x000000FF);
+
 	free(command);
 }
 
@@ -109,13 +161,29 @@ int main(int argc, char **argv)
 	}
 	libusb_claim_interface(device, 1);
 	int i, j, k;
+	unsigned char keypad;
 	int count = 0;
-	for (j = 0; j < 10000; j++) {
+
+	setPortDirection(device, 0, 0x00);
+	setPortDirection(device, 1, 0x00);
+	setPortDirection(device, 2, 0x00);
+
+	for (j = 0; j < 20; j++) {
 		for (k = 0; k < 60; k++) {
+			/* port 0 needs to be output to drive 7 seg */
+			setPortDirection(device, 0, 0x00);
 			for (i = 0; i < 4; i++) {
 				setPortValue(device, 0, 1 << i);
 				setPortValue(device, 2, digit[count%10]);
 				usleep(((1000000/60)/4));
+			}
+
+			setPortValue(device, 2, 0x00);
+			/* port 0 needs to be input to read keypad */
+			setPortDirection(device, 0, 0xFF);
+			for (i = 0; i < 4; i++) {
+				setPortValue(device, 1, 1 << i);
+				getPortValue(device, 0, &keypad);
 			}
 		}
 		count ++;
