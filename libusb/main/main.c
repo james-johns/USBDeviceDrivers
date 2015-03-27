@@ -14,24 +14,13 @@ int main(int argc, char **argv)
 {
 	libusb_context *context;
 	context = initUSBContext(NULL);
-	libusb_device_handle *device = libusb_open_device_with_vid_pid(context, VENDOR_ID, PRODUCT_ID);
+	libusb_device_handle *device = openKeypadDevice(context);
+
 	if (device == NULL) {
-		fprintf(stderr, "Error finding device\n");
+		perror("Device not opened");
 		destroyUSBContext(context);
 		return -1;
 	}
-	printDeviceInfo(libusb_get_device(device));
-	if (libusb_kernel_driver_active(device, 0) == 1) {
-		fprintf(stderr, "Disabling kernel driver...");
-		if (libusb_detach_kernel_driver(device, 0) == 0)
-			fprintf(stderr, "Success\n");
-		else {
-			fprintf(stderr, "Failed!\n");
-			destroyUSBContext(context);
-			return -2;
-		}
-	}
-	libusb_claim_interface(device, 1);
 	int i, j, k;
 	unsigned char keypad;
 	int count = 0;
@@ -60,8 +49,7 @@ int main(int argc, char **argv)
 		}
 		count ++;
 	}
-	libusb_release_interface(device, 1);
-	libusb_close(device);
+	closeKeypadDevice(device);
 
 	destroyUSBContext(context);
 	return 0;

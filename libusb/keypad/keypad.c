@@ -23,6 +23,34 @@ void destroyUSBContext(libusb_context *context)
 	libusb_exit(context);
 }
 
+libusb_device_handle *openKeypadDevice(libusb_context *context)
+{
+        libusb_device_handle *device = libusb_open_device_with_vid_pid(context, VENDOR_ID, PRODUCT_ID);
+        if (device == NULL) {
+                fprintf(stderr, "Error finding device\n");
+                return NULL;
+        }
+        printDeviceInfo(libusb_get_device(device));
+        if (libusb_kernel_driver_active(device, 0) == 1) {
+                fprintf(stderr, "Disabling kernel driver...");
+                if (libusb_detach_kernel_driver(device, 0) == 0)
+                        fprintf(stderr, "Success\n");
+                else {
+                        fprintf(stderr, "Failed!\n");
+                        return NULL;
+                }
+        }
+        libusb_claim_interface(device, 1);
+
+	return device;
+}
+
+void closeKeypadDevice(libusb_device_handle *keypadDevice)
+{
+	libusb_release_interface(keypadDevice, 1);
+	libusb_close(keypadDevice);
+}
+
 void printDeviceInfo(libusb_device *device)
 {
 	int error;

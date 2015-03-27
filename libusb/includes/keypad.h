@@ -9,6 +9,9 @@
 libusb_context *initUSBContext(libusb_context *context);
 void destroyUSBContext(libusb_context *context);
 
+libusb_device_handle *openKeypadDevice(libusb_context *context);
+void closeKeypadDevice(libusb_device_handle *keypadDevice);
+
 void printDeviceInfo(libusb_device *device);
 
 void setPortDirection(libusb_device_handle *device, unsigned char port, unsigned char direction);

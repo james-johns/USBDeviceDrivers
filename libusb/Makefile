@@ -12,7 +12,7 @@ LD:=$(CROSS_COMPILE)gcc
 
 CFLAGS+=-I/usr/include/libusb-1.0 -I./includes/
 CCFLAGS+=
-LDFLAGS+=-lc -lusb-1.0
+LDFLAGS+= -L./ -lkeypad -lc -lusb-1.0
 
 Q:=-@
 
@@ -31,12 +31,12 @@ include keypad/Makefile
 all: $(PROJECT)
 
 clean:
-	$(Q)rm $(PROJECT)
-	$(Q)rm $(obj-y)
+	$(Q)rm $(PROJECT) libkeypad.a
+	$(Q)rm $(obj-y) $(keypad-obj-y)
 
 $(PROJECT): $(obj-y) libkeypad.a FORCE
 	$(Q)echo " [LD]  $@"
-	$(Q)$(LD) -o $(PROJECT) $(obj-y) $(LDFLAGS) -L./ -lkeypad
+	$(Q)$(LD) -o $(PROJECT) $(obj-y) $(LDFLAGS)
 
 libkeypad.a:$(keypad-obj-y) FORCE
 	$(Q)echo " [AR]  $@"
